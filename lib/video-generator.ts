@@ -4,12 +4,9 @@ import { exec } from "child_process";
 import { promisify } from "util";
 import path from "path";
 import { ScriptScene } from "./types";
-import ffmpegStatic from "ffmpeg-static";
+import { getCachedFFmpegPath } from "./ffmpeg-helper";
 
 const execAsync = promisify(exec);
-
-// Get the bundled ffmpeg path (falls back to 'ffmpeg' if not found)
-const FFMPEG_PATH = ffmpegStatic || 'ffmpeg';
 
 interface SceneAudio {
   audioPath: string;
@@ -43,6 +40,9 @@ export async function generateVideo(options: VideoGenerationOptions): Promise<Vi
 
   const videoFileName = `video_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.mp4`;
   const videoPath = path.join(tempDir, videoFileName);
+
+  // Get FFmpeg path dynamically at runtime
+  const FFMPEG_PATH = await getCachedFFmpegPath();
 
   try {
     // Check if ffmpeg is available

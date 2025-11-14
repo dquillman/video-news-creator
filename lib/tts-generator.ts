@@ -3,12 +3,9 @@ import { promises as fs } from "fs";
 import { exec } from "child_process";
 import { promisify } from "util";
 import path from "path";
-import ffmpegStatic from "ffmpeg-static";
+import { getCachedFFmpegPath } from "./ffmpeg-helper";
 
 const execAsync = promisify(exec);
-
-// Get the bundled ffmpeg path (falls back to 'ffmpeg' if not found)
-const FFMPEG_PATH = ffmpegStatic || 'ffmpeg';
 
 export async function generateTTS(text: string, voiceType: "male" | "female"): Promise<string> {
   // Clean the text for TTS
@@ -77,7 +74,10 @@ if __name__ == "__main__":
 
     // STEP 2: Use Node.js/FFmpeg to convert MP3 to WAV with adjustments
     console.log('Step 2: Converting MP3 to WAV with ffmpeg...');
-    
+
+    // Get FFmpeg path dynamically
+    const FFMPEG_PATH = await getCachedFFmpegPath();
+
     let ffmpegFilter: string;
     if (voiceType === 'male') {
       // Male: speed up 15% + lower pitch slightly
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     }
 
     const ffmpegCommand = `"${FFMPEG_PATH}" -y -i "${mp3Path}" -af "${ffmpegFilter}" -ar 44100 -ac 2 "${audioPath}"`;
-    
+
     const { stdout: ffStdout, stderr: ffStderr } = await execAsync(ffmpegCommand, {
       maxBuffer: 1024 * 1024 * 10 // 10MB buffer
     });
