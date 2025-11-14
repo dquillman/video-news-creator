@@ -1,0 +1,115 @@
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+    output = "/home/ubuntu/video_news_creator/nextjs_space/node_modules/.prisma/client"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Topic {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  description String?
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  newsStories NewsStory[]
+  subTopics   SubTopic[]
+
+  @@map("topics")
+}
+
+model SubTopic {
+  id          String      @id @default(cuid())
+  name        String
+  description String?
+  topicId     String      @map("topic_id")
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  newsStories NewsStory[]
+  topic       Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([name, topicId])
+  @@map("sub_topics")
+}
+
+model NewsStory {
+  id          String    @id @default(cuid())
+  title       String
+  summary     String
+  content     String
+  url         String?
+  imageUrl    String?   @map("image_url")
+  ranking     Int
+  topicId     String    @map("topic_id")
+  subTopicId  String?   @map("sub_topic_id")
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  subTopic    SubTopic? @relation(fields: [subTopicId], references: [id])
+  topic       Topic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  scripts     Script[]
+
+  @@map("news_stories")
+}
+
+model Script {
+  id          String    @id @default(cuid())
+  title       String
+  content     String
+  duration    Int
+  newsStoryId String    @map("news_story_id")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  scenes      Json?
+  newsStory   NewsStory @relation(fields: [newsStoryId], references: [id], onDelete: Cascade)
+  videos      Video[]
+
+  @@map("scripts")
+}
+
+model Video {
+  id             String      @id @default(cuid())
+  title          String
+  description    String?
+  duration       Int
+  actualDuration Int?
+  voiceType      String
+  includeImages  Boolean     @default(true)
+  status         VideoStatus @default(PENDING)
+  filePath       String?     @map("file_path")
+  fileSize       String?     @map("file_size")
+  downloadUrl    String?     @map("download_url")
+  scriptId       String      @map("script_id")
+  errorMessage   String?     @map("error_message")
+  processingLog  String?     @map("processing_log")
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  completedAt    DateTime?   @map("completed_at")
+  script         Script      @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+
+  @@map("videos")
+}
+
+model UserPreferences {
+  id               String   @id @default(cuid())
+  defaultDuration  Int      @default(60) @map("default_duration")
+  defaultVoiceType String   @default("female") @map("default_voice_type")
+  includeImages    Boolean  @default(true) @map("include_images")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("user_preferences")
+}
+
+enum VideoStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  ERROR
+  EXPIRED
+}
